@@ -1,0 +1,96 @@
+---
+title: "ed221-day8-int"
+format: html
+editor: visual
+---
+
+## Review Basics of ggplot
+
+```{r}
+# General use packages:
+library(tidyverse)
+library(here)
+library(janitor)
+
+# Specifically for plots:
+library(patchwork)
+library(ggrepel)
+library(gghighlight)
+library(paletteer)
+library(ggExtra)
+library(ggbeeswarm)
+
+# And for another dataset we'll explore:
+library(gapminder)
+
+# Spatial
+library(sf)
+```
+
+### Reading in Data:
+
+```{r}
+lizards <- read.csv(here("data_tidy", "lizards.csv"))
+```
+
+Do some data wrangling to create a new subset from lizards where you:
+
+-   limit the data to only contain western whiptails, colorado checkered, and eastern fence lizards
+
+-   add a new column with total length converted to cm
+
+-   group by species and site
+
+-   return a summary table with mean, total length, and standard dev of total length by species and site
+
+```{r}
+length_table <- lizards %>% 
+  filter(common_name == "western whiptail" | common_name == "colorado checkered" | common_name == "eastern fence") %>% 
+  mutate(length_cm = total_length / 10) %>% 
+  group_by(common_name, site) %>% 
+  summarise(mean_cm = mean(length_cm, na.rm = TRUE), sd_cm = sd(length_cm, na.rm = TRUE), sum(length_cm))
+```
+
+Let's make a scatterplot:
+
+We added a facet (x or y) depending on how we want our panels to be arranged (horizontally or vertically). We use facet_wrap(\~"variable name", scales = "free"). Scales = free is a good option if we want to change the scales of each of the variable categories.
+
+```{r}
+ggplot(data = lizards, aes(x = total_length, y = weight )) + 
+  geom_point(aes(color = common_name)) + 
+  facet_wrap(~common_name, scales = "free")
+```
+
+Let's now create a bar chart:
+
+```{r}
+#Making a new table with lizard counts first
+lizard_counts <- lizards %>% 
+   count(common_name)
+
+
+ggplot(lizard_counts, aes(y = common_name, x = n)) + geom_col()
+
+##REFACTORING##:
+
+#How to make names easier to see on the x axis? Switch the variables and their axes (see above)
+#If you want groups to show up in a meaningful order (other than alphabetical) we add factors! 
+#fct_reorder() function:
+#We're saying "base the order of the values in the reordering of common name by n (our count column)"
+ggplot(lizard_counts, aes(y = fct_reorder(common_name, n), x = n, fill = common_name)) +
+  geom_col()
+
+
+##SCALES##
+#We can use scales:_() functions to change the scales of axes and other types of scales in the chart
+ggplot(data = lizards, aes(x = total_length, y = weight , color = weight)) + 
+  geom_point() + 
+  scale_y_continuous(limits = c(0,100),
+                     breaks = seq(from = 0, to = 100, by = 20),
+                     expand = c(0,0)) +
+  scale_color_gradient(low = "magenta", high = "turquoise")
+
+#the scale_y_continuous allows us to give limits to the y axis (since it is continuous data). In this case we're saying plot the y axis from 0 to 100. Adding breaks indicates the gridline breaks spaced to be. Expand allows us to stop the y axis to show any gridlines beyond those numbers we set in the limits. 
+
+#we can also add scale color functions. In this case we've added scale_color_gradient() to define the gradient of 2 colors in the graph. 
+```
